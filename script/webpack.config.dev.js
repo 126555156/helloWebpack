@@ -3,18 +3,15 @@ const webpack = require('webpack')
 const HtmlWebpackPlugin = require('html-webpack-plugin') // html模板
 const MiniCssExtractPlugin = require('mini-css-extract-plugin') // 抽取css插件
 const postcssNormalize = require('postcss-normalize') // 允许css文件中用@import引入其他css文件
-const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin') // 压缩css文件
-const safePostCssParser = require('postcss-safe-parser') // 查找并修复 CSS 语法错误(网上这么写的)暂时没发现有什么用
+// const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin') // 压缩css文件
+// const safePostCssParser = require('postcss-safe-parser') // 查找并修复 CSS 语法错误(网上这么写的)暂时没发现有什么用
 const portfinder = require('portfinder')// 检查端口是否被占用
 const apiMocker = require('mocker-api') // mock工具可以热更新比json-server好用
 let configs = []
 const shouldMap = true // 是否强制需要映射map文件设置成false 生产环境不产生sourcemap文件提高构建速度
 const getStyleLoaders = (cssOptions, preProcessor) => {
   const loaders = [
-    {
-      loader: MiniCssExtractPlugin.loader,
-      options: { publicPath: '../' }
-    },
+    'style-loader', // 启用style-loader可以让css更新不刷新页面
     {
       loader: 'css-loader',
       options: {
@@ -98,6 +95,7 @@ module.exports = async env => {
       open: true, // 打开浏览器
       overlay: true, // 出现编译器错误或警告时，在浏览器中显示全屏覆盖。默认禁用。如果只想显示编译器错误
       port, // 端口号
+      hot: true, // 开启热替换主要为了css更新不用刷新页面
       progress: true, // 加进度条,会在控制台显示一堆信息，可以去掉
       disableHostCheck: true, // 防止ie报警
       openPage: `${configs[0].name}/index.html`, // 需要打开的页面
@@ -106,32 +104,12 @@ module.exports = async env => {
       compress: true // 设置开启压缩
     },
     devtool: 'cheap-module-eval-source-map', // 最新版用这个
-    // 下列优化项
-    optimization: {
-      minimize: true, // 启用/禁用多进程并行运行，不设置true下面无效
-      minimizer: [
-        new OptimizeCSSAssetsPlugin({
-          cssProcessorOptions: {
-            parser: safePostCssParser,
-            map: shouldMap && {
-              // 不生成内联映射,这样配置就会生成一个source-map文件
-              inline: false,
-              // 向css文件添加source-map路径注释
-              // 如果没有此项压缩后的css会去除source-map路径注释
-              annotation: true
-            }
-          },
-          cssProcessorPluginOptions: {
-            preset: ['default', { minifyFontValues: { removeQuotes: false } }]
-          }
-        })
-      ]
-    },
+
     mode: env, // 两种模式一种development开发，一种production生产
     entry, // 入口
     output: {
-      filename: 'js/[name].js', // 写成bundle.[hash].js会将文件名hash化  bundle.[hash:8].js只有8位hash
-      chunkFilename: 'js/[name].js',
+      filename: '[name]/js/index.js', // 写成bundle.[hash].js会将文件名hash化  bundle.[hash:8].js只有8位hash
+      chunkFilename: '[name]/js/index.js',
       publicPath: '/',
       path: path.resolve(
         __dirname,
